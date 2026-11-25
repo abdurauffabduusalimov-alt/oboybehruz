@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lotin → Kirill</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #fff; --card: #f5f5f7; --text: #1d1d1f; --muted: #6e6e73;
+    --line: #d2d2d7; --accent: #0071e3; --accent-hover: #0077ed; --accent-text: #fff;
+    --fill: #e8e8ed; --fill-hover: #dcdce1;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 17px/1.47 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    letter-spacing: -.01em; -webkit-font-smoothing: antialiased;
+  }
+
+  /* Butun oynani to'ldiradi */
+  .app {
+    min-height: 100vh; min-height: 100dvh;
+    display: flex; flex-direction: column; gap: 14px;
+    padding: 16px 20px;
+  }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .top h1 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -.02em; }
+  .badge {
+    display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px;
+    border-radius: 10px; background: var(--accent); color: var(--accent-text);
+    font-size: 12px; font-weight: 600; text-align: center;
+  }
+
+  .grid {
+    flex: 1; min-height: 0;
+    display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 14px;
+  }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  .box {
+    background: var(--card); border: 0;
+    border-radius: 18px; padding: 16px; display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  label { font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 8px; }
+  textarea {
+    width: 100%; resize: none;
+    border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+    font: inherit; background: #fff; color: inherit; outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .grid textarea { flex: 1; min-height: 120px; font-size: 18px; }
+  textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(0, 113, 227, .18); }
+  .row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  button {
+    border: 0; background: var(--fill); color: var(--text);
+    padding: 8px 18px; border-radius: 980px; font: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    transition: transform .12s ease, background-color .15s ease, opacity .15s ease;
+  }
+  button:hover { background: var(--fill-hover); }
+  button:active { transform: scale(.96); }
+  button.pop { animation: pop .28s ease; }
+  @keyframes pop {
+    0% { transform: scale(.94); }
+    60% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button, button:hover, button:active { transition: none; transform: none; }
+    button.pop { animation: none; }
+    .back, .panel { transition: none; }
+  }
+  button.main { background: var(--accent); color: var(--accent-text); }
+  button.main:hover { background: var(--accent-hover); }
+
+  /* Telefon raqam bo'limi (kichkina) */
+  .small { padding: 10px 14px; align-self: flex-start; }
+  .small label { font-size: 12px; margin-bottom: 6px; }
+  .phone { display: flex; gap: 8px; align-items: center; }
+  .phone textarea {
+    min-height: 0; height: 40px; width: 160px; flex: none;
+    font-size: 16px; line-height: 1.3; padding: 8px 12px;
+  }
+  .pbtn { display: flex; gap: 6px; }
+  .pbtn button { padding: 6px 14px; font-size: 13px; }
+  @media (max-width: 520px) {
+    .small { align-self: stretch; }
+    .phone { flex-direction: column; align-items: stretch; }
+    .phone textarea { width: 100%; }
+  }
+
+  /* Tarix menyusi (o'ng tomondan chiqadi) */
+  .back {
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+    background: rgba(0, 0, 0, .32); opacity: 0; pointer-events: none;
+    transition: opacity .2s ease; z-index: 10;
+  }
+  .back.open { opacity: 1; pointer-events: auto; }
+  .panel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100%);
+    background: rgba(255, 255, 255, .86);
+    -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px);
+    border-left: 1px solid rgba(0, 0, 0, .08);
+    display: flex; flex-direction: column; z-index: 11;
+    transform: translateX(100%); visibility: hidden;
+    transition: transform .22s ease, visibility .22s;
+  }
+  .panel.open { transform: none; visibility: visible; }
+  .phead {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 14px 16px; border-bottom: 1px solid rgba(0, 0, 0, .08);
+  }
+  .phead h2 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
+  .phead .btns { display: flex; gap: 6px; }
+  .phead button { padding: 5px 12px; font-size: 13px; }
+  .plist { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+  .plist li { padding: 12px 16px; border-bottom: 1px solid rgba(0, 0, 0, .08); }
+  .plist li.empty { border-bottom: 0; padding: 24px 16px; color: var(--muted); text-align: center; }
+  .hrow { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+  .hact { font-weight: 600; }
+  .htime { color: var(--muted); white-space: nowrap; }
+  .htxt {
+    margin-top: 4px; font-size: 14px; color: var(--muted);
+    white-space: pre-wrap; word-break: break-word; max-height: 4.5em; overflow: hidden;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="top">
+    <h1>Lotin → Kirill</h1>
+    <button id="hbtn" type="button">Tarix <span id="hcount" class="badge">0</span></button>
+  </div>
+
+  <div class="box small">
+    <label for="pin">Telefon raqam: qo'ysangiz bo'sh joylar o'zi o'chadi</label>
+    <div class="phone">
+      <textarea id="pin" placeholder="90 123 45 67"></textarea>
+      <div class="pbtn">
+        <button id="ppaste" type="button">Paste</button>
+        <button id="pcopy" type="button" class="main">Copy</button>
+        <button id="pclear" type="button">Tozalash</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="box">
+      <label for="inp">Lotin</label>
+      <textarea id="inp" autofocus></textarea>
+      <div class="row">
+        <button id="clear" type="button">Tozalash</button>
+      </div>
+    </div>
+    <div class="box">
+      <label for="out">Kirill</label>
+      <textarea id="out" readonly></textarea>
+      <div class="row">
+        <button id="copy" type="button" class="main">Nusxa olish</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="hback" class="back"></div>
+<aside id="hpanel" class="panel" aria-label="Tarix">
+  <div class="phead">
+    <h2>Oxirgi amallar</h2>
+    <div class="btns">
+      <button id="hclear" type="button">O'chirish</button>
+      <button id="hclose" type="button">Yopish</button>
+    </div>
+  </div>
+  <ul id="hlist" class="plist"></ul>
+</aside>
+
+<script>
+// ==CONVERT==
+var AP = "'ʻʼ’‘`´";
+function isAp(c) { return !!c && AP.indexOf(c) !== -1; }
+function isLetter(c) { return !!c && (/[A-Za-zЀ-ӿ]/.test(c) || isAp(c)); }
+
+var SINGLE = {
+  a:'а', b:'б', c:'ц', d:'д', e:'е', f:'ф', g:'г', h:'ҳ', i:'и', j:'ж',
+  k:'к', l:'л', m:'м', n:'н', o:'о', p:'п', q:'қ', r:'р', s:'с', t:'т',
+  u:'у', v:'в', w:'в', x:'х', y:'й', z:'з'
+};
+var PAIRS = { sh:'ш', ch:'ч', yo:'ё', yu:'ю', ya:'я', ye:'е' };
+
+function cs(src, out) {
+  if (src === src.toUpperCase() && src !== src.toLowerCase()) return out.toUpperCase();
+  var f = src.charAt(0);
+  if (f === f.toUpperCase() && f !== f.toLowerCase()) return out.charAt(0).toUpperCase() + out.slice(1);
+  return out;
+}
+
+function convert(text) {
+  var res = '', i = 0, n = text.length;
+  while (i < n) {
+    var ch = text.charAt(i), low = ch.toLowerCase();
+    var nx = text.charAt(i + 1), nxl = nx.toLowerCase();
+
+    // yo' -> йў  (yo'q -> йўқ)
+    if (low === 'y' && nxl === 'o' && isAp(text.charAt(i + 2))) {
+      res += cs(text.substr(i, 3), 'йў'); i += 3; continue;
+    }
+    // o' -> ў , g' -> ғ
+    if ((low === 'o' || low === 'g') && isAp(nx)) {
+      res += cs(text.substr(i, 2), low === 'o' ? 'ў' : 'ғ'); i += 2; continue;
+    }
+    // sh, ch, yo, yu, ya, ye
+    var pair = low + nxl;
+    if (PAIRS.hasOwnProperty(pair)) {
+      res += cs(text.substr(i, 2), PAIRS[pair]); i += 2; continue;
+    }
+    // tutuq belgisi: harflar orasida -> ъ
+    if (isAp(ch)) {
+      if (isLetter(text.charAt(i - 1)) && isLetter(nx)) res += 'ъ'; else res += ch;
+      i++; continue;
+    }
+    // e: so'z boshida -> э, boshqa joyda -> е
+    if (low === 'e') {
+      res += cs(ch, isLetter(text.charAt(i - 1)) ? 'е' : 'э'); i++; continue;
+    }
+    if (SINGLE.hasOwnProperty(low)) {
+      res += cs(ch, SINGLE[low]); i++; continue;
+    }
+    res += ch; i++;
+  }
+  return res;
+}
+
+// Matn boshidagi va har gap / qator boshidagi birinchi harfni katta qiladi
+function capFirst(t) {
+  return t.replace(/(^\s*|[.!?…]\s+|\n\s*)([«"(]?)([a-zа-яёўқғҳ])/g,
+    function (m, a, q, b) { return a + q + b.toUpperCase(); });
+}
+
+// Telefon raqamlardagi bo'sh joylarni olib tashlaydi (qatorlar saqlanadi)
+function stripSpaces(t) {
+  return t.replace(/[ \t  -​ 　]+/g, '');
+}
+// ==END==
+
+var inp = document.getElementById('inp');
+var out = document.getElementById('out');
+var copyBtn = document.getElementById('copy');
+var pin = document.getElementById('pin');
+var pcopy = document.getElementById('pcopy');
+var ppaste = document.getElementById('ppaste');
+var hbtn = document.getElementById('hbtn');
+var hcount = document.getElementById('hcount');
+var hpanel = document.getElementById('hpanel');
+var hback = document.getElementById('hback');
+var hlist = document.getElementById('hlist');
+
+// ---- Tarix: oxirgi amallar (brauzerda saqlanadi) ----
+var KEY = 'lk_tarix_v1', MAX = 50, hist = [];
+
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+// 25.11.2026 09:28
+function fmt(ts) {
+  var d = new Date(ts);
+  return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear() +
+    ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function loadHist() {
+  try {
+    var r = localStorage.getItem(KEY), a = r ? JSON.parse(r) : [];
+    hist = Array.isArray(a) ? a.filter(function (h) {
+      return h && typeof h.t === 'number' && typeof h.a === 'string';
+    }) : [];
+  } catch (e) { hist = []; }
+}
+function saveHist() {
+  try { localStorage.setItem(KEY, JSON.stringify(hist)); } catch (e) {}
+}
+function renderHist() {
+  hcount.textContent = hist.length;
+  hlist.textContent = '';
+  if (!hist.length) {
+    var em = document.createElement('li');
+    em.className = 'empty';
+    em.textContent = "Hali amal yo'q";
+    hlist.appendChild(em);
+    return;
+  }
+  hist.forEach(function (h) {
+    var li = document.createElement('li');
+    var row = document.createElement('div'); row.className = 'hrow';
+    var a = document.createElement('span'); a.className = 'hact'; a.textContent = h.a;
+    var t = document.createElement('span'); t.className = 'htime'; t.textContent = fmt(h.t);
+    row.appendChild(a); row.appendChild(t); li.appendChild(row);
+    if (h.x) {
+      var x = document.createElement('div'); x.className = 'htxt'; x.textContent = h.x;
+      li.appendChild(x);
+    }
+    hlist.appendChild(li);
+  });
+}
+function log(act, txt) {
+  hist.unshift({ t: Date.now(), a: act, x: txt ? String(txt).slice(0, 200) : '' });
+  if (hist.length > MAX) hist.length = MAX;
+  saveHist(); renderHist();
+}
+function openHist() { hpanel.classList.add('open'); hback.classList.add('open'); }
+function closeHist() { hpanel.classList.remove('open'); hback.classList.remove('open'); }
+
+hbtn.addEventListener('click', openHist);
+hback.addEventListener('click', closeHist);
+document.getElementById('hclose').addEventListener('click', closeHist);
+document.getElementById('hclear').addEventListener('click', function () {
+  hist = []; saveHist(); renderHist();
+});
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeHist(); });
+
+loadHist(); renderHist();
+
+// ---- Lotin -> Kirill ----
+inp.addEventListener('input', function () { out.value = capFirst(convert(inp.value)); });
+
+document.getElementById('clear').addEventListener('click', function () {
+  if (inp.value) log('Lotin matn tozalandi', inp.value);
+  inp.value = ''; out.value = ''; inp.focus();
+});
+
+// Tugma yozuvini bir zumga o'zgartirish
+function flash(btn, text, label) {
+  btn.textContent = text;
+  setTimeout(function () { btn.textContent = label; }, 1500);
+}
+
+// Nusxa olish (clipboard ishlamasa — eski usul)
+function doCopy(el, btn, label, act) {
+  if (!el.value) return;
+  var txt = el.value;
+  function ok() { flash(btn, 'Olindi ✓', label); log(act, txt); }
+  function fallback() {
+    el.focus(); el.select();
+    try { document.execCommand('copy'); ok(); }
+    catch (e) { flash(btn, 'Qo\'lda oling', label); }
+    el.setSelectionRange(el.value.length, el.value.length);
+  }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(txt).then(ok, fallback);
+  } else {
+    fallback();
+  }
+}
+copyBtn.addEventListener('click', function () { doCopy(out, copyBtn, 'Nusxa olish', 'Kirill matn nusxa olindi'); });
+
+// ---- Telefon: yozilganda yoki qo'yilganda bo'sh joylar o'zi o'chadi ----
+pin.addEventListener('input', function () {
+  var pos = pin.selectionStart;
+  var cleanBefore = stripSpaces(pin.value.slice(0, pos));
+  var clean = stripSpaces(pin.value);
+  if (clean !== pin.value) {
+    pin.value = clean;
+    pin.setSelectionRange(cleanBefore.length, cleanBefore.length);
+  }
+});
+
+// Ctrl+V bilan qo'yilganda ham tarixga yoziladi
+pin.addEventListener('paste', function (e) {
+  var t = '';
+  try { t = stripSpaces((e.clipboardData || window.clipboardData).getData('text')); } catch (err) {}
+  if (t) log("Telefon raqam qo'yildi (Ctrl+V)", t);
+});
+
+pcopy.addEventListener('click', function () { doCopy(pin, pcopy, 'Copy', 'Telefon raqam nusxa olindi'); });
+
+ppaste.addEventListener('click', function () {
+  function manual() { pin.focus(); flash(ppaste, 'Ctrl+V bosing', 'Paste'); }
+  if (navigator.clipboard && navigator.clipboard.readText && window.isSecureContext) {
+    navigator.clipboard.readText().then(function (t) {
+      pin.value = stripSpaces(t);
+      pin.focus();
+      flash(ppaste, 'Joylandi ✓', 'Paste');
+      if (pin.value) log("Telefon raqam qo'yildi (Paste)", pin.value);
+    }, manual);
+  } else {
+    manual();
+  }
+});
+
+document.getElementById('pclear').addEventListener('click', function () {
+  if (pin.value) log('Telefon raqam tozalandi', pin.value);
+  pin.value = ''; pin.focus();
+});
+
+// Tugma bosilganda yengil animatsiya (bitta umumiy tinglovchi)
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('button');
+  if (!b) return;
+  b.classList.remove('pop');
+  void b.offsetWidth;
+  b.classList.add('pop');
+});
+document.addEventListener('animationend', function (e) {
+  e.target.classList.remove('pop');
+});
+</script>
+</body>
+</html>
