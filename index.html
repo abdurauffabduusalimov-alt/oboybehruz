@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lotin → Kirill</title>
+<style>
+  :root {
+    color-scheme: light;
+    --text: #fff; --muted: rgba(255, 255, 255, .76);
+    --line: rgba(255, 255, 255, .3); --field: rgba(0, 0, 0, .22);
+    --fill: rgba(255, 255, 255, .2); --fill-hover: rgba(255, 255, 255, .32);
+    --ink: #0b1220;
+    --glow: 0 1px 4px rgba(0, 0, 0, .5), 0 0 14px rgba(0, 0, 0, .25);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: #1b4fd6; color: var(--text);
+    font: 17px/1.47 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    letter-spacing: -.01em; -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── ROOT: LiquidGlass shu elementni "sahna" qilib oladi ──
+     Shisha elementlar (.glass) faqat shu elementning TO'G'RIDAN-TO'G'RI bolalari bo'lishi shart. */
+  .app {
+    position: relative; overflow: hidden;
+    min-height: 100vh; min-height: 100dvh;
+    display: grid; gap: 16px;
+    padding: clamp(20px, 3vw, 36px);
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      "title hist"
+      "phone phone"
+      "inp   out";
+  }
+
+  /* Orqa fon rasmi (shisha shu rasmni sindiradi) */
+  .bg {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; object-position: 60% 50%;
+    z-index: 0; pointer-events: none;
+    -webkit-user-drag: none; user-select: none;
+  }
+
+  /* Shisha elementlar: root'ning bolasi, z-index bilan o'z stacking context'ida */
+  .glass {
+    position: relative; z-index: 2; min-width: 0;
+    color: var(--text); text-shadow: var(--glow);
+  }
+  /* LiquidGlass yuklanmasa (CDN yoki WebGL yo'q) — oddiy shisha ko'rinish */
+  .lg-fallback .glass {
+    background: rgba(255, 255, 255, .14);
+    -webkit-backdrop-filter: blur(18px) saturate(160%); backdrop-filter: blur(18px) saturate(160%);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35), 0 8px 30px rgba(0, 0, 0, .25);
+  }
+
+  .label-wrap { pointer-events: none; display: flex; align-items: center; gap: 8px; }
+
+  /* Sarlavha */
+  .top { grid-area: title; justify-self: start; align-self: center; padding: 12px 26px; border-radius: 28px; }
+  .top h1 { margin: 0; font-size: 21px; line-height: 25px; font-weight: 600; letter-spacing: -.02em; }
+
+  /* Tarix tugmasi (shisha tugma) */
+  .tbtn {
+    grid-area: hist; justify-self: end; align-self: center;
+    display: inline-flex; align-items: center;
+    padding: 12px 22px; border: 0; border-radius: 28px; background: none;
+    font: inherit; font-size: 15px; line-height: 25px; font-weight: 600; letter-spacing: -.01em;
+    cursor: pointer;
+  }
+  .badge {
+    display: inline-block; min-width: 20px; padding: 0 6px;
+    border-radius: 10px; background: #fff; color: var(--ink);
+    font-size: 12px; line-height: 20px; font-weight: 700; text-align: center; text-shadow: none;
+  }
+
+  /* Panellar */
+  .box { display: flex; flex-direction: column; min-height: 0; padding: 18px; border-radius: 40px; }
+  .box.small { grid-area: phone; justify-self: start; padding: 14px 18px 16px; border-radius: 32px; }
+  #lbox { grid-area: inp; }
+  #obox { grid-area: out; }
+
+  label { font-size: 13px; font-weight: 600; color: var(--muted); margin: 2px 6px 10px; }
+  .small label { font-size: 12px; margin-bottom: 8px; }
+
+  textarea {
+    width: 100%; resize: none;
+    border: 1px solid var(--line); border-radius: 22px; padding: 12px 16px;
+    font: inherit; color: #fff; background: var(--field); text-shadow: var(--glow);
+    caret-color: #fff; outline: none;
+    -webkit-user-select: text; user-select: text;
+    transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+  }
+  textarea::placeholder { color: rgba(255, 255, 255, .6); }
+  textarea:focus { border-color: rgba(255, 255, 255, .85); background: rgba(0, 0, 0, .3); box-shadow: 0 0 0 4px rgba(255, 255, 255, .2); }
+  .box textarea { flex: 1; min-height: 120px; font-size: 18px; }
+
+  .row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .row button, .pbtn button, .phead button {
+    border: 1px solid var(--line); background: var(--fill); color: #fff; text-shadow: var(--glow);
+    padding: 8px 18px; border-radius: 980px; font: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    transition: transform .12s ease, background-color .15s ease, opacity .15s ease;
+  }
+  .row button:hover, .pbtn button:hover, .phead button:hover { background: var(--fill-hover); }
+  .row button:active, .pbtn button:active, .phead button:active { transform: scale(.96); }
+  button.main, button.main:hover { background: rgba(255, 255, 255, .94); color: var(--ink); border-color: transparent; text-shadow: none; }
+  button.main:hover { background: #fff; }
+  button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  button.pop { animation: pop .28s ease; }
+  @keyframes pop {
+    0% { transform: scale(.94); }
+    60% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  /* Telefon raqam bo'limi (kichkina) */
+  .phone { display: flex; gap: 10px; align-items: center; }
+  .phone textarea { min-height: 0; height: 44px; width: 170px; flex: none; font-size: 16px; line-height: 1.3; padding: 9px 14px; border-radius: 18px; }
+  .pbtn { display: flex; gap: 6px; }
+  .pbtn button { padding: 7px 14px; font-size: 13px; }
+
+  /* Tarix menyusi (o'ng tomondan chiqadigan shisha panel) */
+  .back {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, .28); opacity: 0; pointer-events: none;
+    transition: opacity .2s ease; z-index: 10;
+  }
+  .back.open { opacity: 1; pointer-events: auto; }
+  .glass.panel {
+    position: fixed; top: 12px; right: 12px; bottom: 12px; width: min(400px, calc(100% - 24px));
+    display: flex; flex-direction: column; z-index: 11; border-radius: 40px;
+    transform: translateX(calc(100% + 24px)); visibility: hidden;
+    transition: transform .22s ease, visibility .22s;
+  }
+  .glass.panel.open { transform: none; visibility: visible; }
+  .phead {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 18px 20px 14px; border-bottom: 1px solid rgba(255, 255, 255, .2);
+  }
+  .phead h2 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
+  .phead .btns { display: flex; gap: 6px; }
+  .phead button { padding: 5px 12px; font-size: 13px; }
+  .plist { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; border-radius: 0 0 40px 40px; }
+  .plist li { padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, .16); }
+  .plist li.empty { border-bottom: 0; padding: 24px 20px; color: var(--muted); text-align: center; }
+  .hrow { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+  .hact { font-weight: 600; }
+  .htime { color: var(--muted); white-space: nowrap; }
+  .htxt {
+    margin-top: 4px; font-size: 14px; color: rgba(255, 255, 255, .84);
+    white-space: pre-wrap; word-break: break-word; max-height: 4.5em; overflow: hidden;
+    -webkit-user-select: text; user-select: text;
+  }
+
+  @media (max-width: 700px) {
+    .app {
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto minmax(170px, 1fr) minmax(170px, 1fr);
+      grid-template-areas:
+        "title hist"
+        "phone phone"
+        "inp   inp"
+        "out   out";
+    }
+    .box { border-radius: 32px; }
+    .box.small { justify-self: stretch; }
+  }
+  @media (max-width: 520px) {
+    .phone { flex-direction: column; align-items: stretch; }
+    .phone textarea { width: 100%; }
+    .pbtn { justify-content: flex-start; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button, button:hover, button:active { transition: none; transform: none; }
+    button.pop { animation: none; }
+    .back, .glass.panel { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- #app = LiquidGlass root. Hamma .glass elementlar shu yerning to'g'ridan-to'g'ri bolalari. -->
+<div class="app" id="app">
+
+  <div class="top glass" data-config='{"blurAmount":0.3,"brightness":-0.1,"cornerRadius":28}'>
+    <h1>Lotin → Kirill</h1>
+  </div>
+
+  <button id="hbtn" type="button" class="tbtn glass" data-config='{"button":true,"cornerRadius":28,"blurAmount":0.3,"brightness":-0.1}'>
+    <span class="label-wrap">Tarix <span id="hcount" class="badge">0</span></span>
+  </button>
+
+  <div class="box small glass" data-config='{"cornerRadius":32,"brightness":-0.3,"blurAmount":0.4}'>
+    <label for="pin">Telefon raqam: qo'ysangiz bo'sh joylar o'zi o'chadi</label>
+    <div class="phone">
+      <textarea id="pin" placeholder="90 123 45 67"></textarea>
+      <div class="pbtn">
+        <button id="ppaste" type="button">Paste</button>
+        <button id="pcopy" type="button" class="main">Copy</button>
+        <button id="pclear" type="button">Tozalash</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="box glass" id="lbox" data-config='{"cornerRadius":40,"brightness":-0.3,"blurAmount":0.4}'>
+    <label for="inp">Lotin</label>
+    <textarea id="inp" autofocus></textarea>
+    <div class="row">
+      <button id="clear" type="button">Tozalash</button>
+    </div>
+  </div>
+
+  <div class="box glass" id="obox" data-config='{"cornerRadius":40,"brightness":-0.3,"blurAmount":0.4}'>
+    <label for="out">Kirill</label>
+    <textarea id="out" readonly></textarea>
+    <div class="row">
+      <button id="copy" type="button" class="main">Nusxa olish</button>
+    </div>
+  </div>
+
+  <aside id="hpanel" class="panel glass" aria-label="Tarix" data-config='{"cornerRadius":40,"brightness":-0.3,"blurAmount":0.5}'>
+    <div class="phead">
+      <h2>Oxirgi amallar</h2>
+      <div class="btns">
+        <button id="hclear" type="button">O'chirish</button>
+        <button id="hclose" type="button">Yopish</button>
+      </div>
+    </div>
+    <ul id="hlist" class="plist"></ul>
+  </aside>
+
+  <!-- Orqa fon: butun sayt foni. Rasm alohida fayl: bg.jpg (index.html bilan bir papkada tursin). -->
+  <img id="bg" class="bg" alt="" draggable="false" src="bg.jpg">
+</div>
+
+<div id="hback" class="back"></div>
+
+<script>
+// ==CONVERT==
+var AP = "'ʻʼ’‘`´";
+function isAp(c) { return !!c && AP.indexOf(c) !== -1; }
+function isLetter(c) { return !!c && (/[A-Za-zЀ-ӿ]/.test(c) || isAp(c)); }
+
+var SINGLE = {
+  a:'а', b:'б', c:'ц', d:'д', e:'е', f:'ф', g:'г', h:'ҳ', i:'и', j:'ж',
+  k:'к', l:'л', m:'м', n:'н', o:'о', p:'п', q:'қ', r:'р', s:'с', t:'т',
+  u:'у', v:'в', w:'в', x:'х', y:'й', z:'з'
+};
+var PAIRS = { sh:'ш', ch:'ч', yo:'ё', yu:'ю', ya:'я', ye:'е' };
+
+function cs(src, out) {
+  if (src === src.toUpperCase() && src !== src.toLowerCase()) return out.toUpperCase();
+  var f = src.charAt(0);
+  if (f === f.toUpperCase() && f !== f.toLowerCase()) return out.charAt(0).toUpperCase() + out.slice(1);
+  return out;
+}
+
+function convert(text) {
+  var res = '', i = 0, n = text.length;
+  while (i < n) {
+    var ch = text.charAt(i), low = ch.toLowerCase();
+    var nx = text.charAt(i + 1), nxl = nx.toLowerCase();
+
+    // yo' -> йў  (yo'q -> йўқ)
+    if (low === 'y' && nxl === 'o' && isAp(text.charAt(i + 2))) {
+      res += cs(text.substr(i, 3), 'йў'); i += 3; continue;
+    }
+    // o' -> ў , g' -> ғ
+    if ((low === 'o' || low === 'g') && isAp(nx)) {
+      res += cs(text.substr(i, 2), low === 'o' ? 'ў' : 'ғ'); i += 2; continue;
+    }
+    // sh, ch, yo, yu, ya, ye
+    var pair = low + nxl;
+    if (PAIRS.hasOwnProperty(pair)) {
+      res += cs(text.substr(i, 2), PAIRS[pair]); i += 2; continue;
+    }
+    // tutuq belgisi: harflar orasida -> ъ
+    if (isAp(ch)) {
+      if (isLetter(text.charAt(i - 1)) && isLetter(nx)) res += 'ъ'; else res += ch;
+      i++; continue;
+    }
+    // e: so'z boshida -> э, boshqa joyda -> е
+    if (low === 'e') {
+      res += cs(ch, isLetter(text.charAt(i - 1)) ? 'е' : 'э'); i++; continue;
+    }
+    if (SINGLE.hasOwnProperty(low)) {
+      res += cs(ch, SINGLE[low]); i++; continue;
+    }
+    res += ch; i++;
+  }
+  return res;
+}
+
+// Matn boshidagi va har gap / qator boshidagi birinchi harfni katta qiladi
+function capFirst(t) {
+  return t.replace(/(^\s*|[.!?…]\s+|\n\s*)([«"(]?)([a-zа-яёўқғҳ])/g,
+    function (m, a, q, b) { return a + q + b.toUpperCase(); });
+}
+
+// Telefon raqamlardagi bo'sh joylarni olib tashlaydi (qatorlar saqlanadi)
+function stripSpaces(t) {
+  return t.replace(/[ \t  -​ 　]+/g, '');
+}
+// ==END==
+
+var inp = document.getElementById('inp');
+var out = document.getElementById('out');
+var copyBtn = document.getElementById('copy');
+var pin = document.getElementById('pin');
+var pcopy = document.getElementById('pcopy');
+var ppaste = document.getElementById('ppaste');
+var hbtn = document.getElementById('hbtn');
+var hcount = document.getElementById('hcount');
+var hpanel = document.getElementById('hpanel');
+var hback = document.getElementById('hback');
+var hlist = document.getElementById('hlist');
+
+// ---- Tarix: oxirgi amallar (brauzerda saqlanadi) ----
+var KEY = 'lk_tarix_v1', MAX = 50, hist = [];
+
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+// 25.11.2026 09:28
+function fmt(ts) {
+  var d = new Date(ts);
+  return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear() +
+    ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function loadHist() {
+  try {
+    var r = localStorage.getItem(KEY), a = r ? JSON.parse(r) : [];
+    hist = Array.isArray(a) ? a.filter(function (h) {
+      return h && typeof h.t === 'number' && typeof h.a === 'string';
+    }) : [];
+  } catch (e) { hist = []; }
+}
+function saveHist() {
+  try { localStorage.setItem(KEY, JSON.stringify(hist)); } catch (e) {}
+}
+function renderHist() {
+  hcount.textContent = hist.length;
+  hlist.textContent = '';
+  if (!hist.length) {
+    var em = document.createElement('li');
+    em.className = 'empty';
+    em.textContent = "Hali amal yo'q";
+    hlist.appendChild(em);
+    return;
+  }
+  hist.forEach(function (h) {
+    var li = document.createElement('li');
+    var row = document.createElement('div'); row.className = 'hrow';
+    var a = document.createElement('span'); a.className = 'hact'; a.textContent = h.a;
+    var t = document.createElement('span'); t.className = 'htime'; t.textContent = fmt(h.t);
+    row.appendChild(a); row.appendChild(t); li.appendChild(row);
+    if (h.x) {
+      var x = document.createElement('div'); x.className = 'htxt'; x.textContent = h.x;
+      li.appendChild(x);
+    }
+    hlist.appendChild(li);
+  });
+}
+function log(act, txt) {
+  hist.unshift({ t: Date.now(), a: act, x: txt ? String(txt).slice(0, 200) : '' });
+  if (hist.length > MAX) hist.length = MAX;
+  saveHist(); renderHist();
+}
+function openHist() { hpanel.classList.add('open'); hback.classList.add('open'); }
+function closeHist() { hpanel.classList.remove('open'); hback.classList.remove('open'); }
+
+hbtn.addEventListener('click', openHist);
+hback.addEventListener('click', closeHist);
+document.getElementById('hclose').addEventListener('click', closeHist);
+document.getElementById('hclear').addEventListener('click', function () {
+  hist = []; saveHist(); renderHist();
+});
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeHist(); });
+
+loadHist(); renderHist();
+
+// ---- Lotin -> Kirill ----
+inp.addEventListener('input', function () { out.value = capFirst(convert(inp.value)); });
+
+document.getElementById('clear').addEventListener('click', function () {
+  if (inp.value) log('Lotin matn tozalandi', inp.value);
+  inp.value = ''; out.value = ''; inp.focus();
+});
+
+// Tugma yozuvini bir zumga o'zgartirish
+function flash(btn, text, label) {
+  btn.textContent = text;
+  setTimeout(function () { btn.textContent = label; }, 1500);
+}
+
+// Nusxa olish (clipboard ishlamasa — eski usul)
+function doCopy(el, btn, label, act) {
+  if (!el.value) return;
+  var txt = el.value;
+  function ok() { flash(btn, 'Olindi ✓', label); log(act, txt); }
+  function fallback() {
+    el.focus(); el.select();
+    try { document.execCommand('copy'); ok(); }
+    catch (e) { flash(btn, 'Qo\'lda oling', label); }
+    el.setSelectionRange(el.value.length, el.value.length);
+  }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(txt).then(ok, fallback);
+  } else {
+    fallback();
+  }
+}
+copyBtn.addEventListener('click', function () { doCopy(out, copyBtn, 'Nusxa olish', 'Kirill matn nusxa olindi'); });
+
+// ---- Telefon: yozilganda yoki qo'yilganda bo'sh joylar o'zi o'chadi ----
+pin.addEventListener('input', function () {
+  var pos = pin.selectionStart;
+  var cleanBefore = stripSpaces(pin.value.slice(0, pos));
+  var clean = stripSpaces(pin.value);
+  if (clean !== pin.value) {
+    pin.value = clean;
+    pin.setSelectionRange(cleanBefore.length, cleanBefore.length);
+  }
+});
+
+// Ctrl+V bilan qo'yilganda ham tarixga yoziladi
+pin.addEventListener('paste', function (e) {
+  var t = '';
+  try { t = stripSpaces((e.clipboardData || window.clipboardData).getData('text')); } catch (err) {}
+  if (t) log("Telefon raqam qo'yildi (Ctrl+V)", t);
+});
+
+pcopy.addEventListener('click', function () { doCopy(pin, pcopy, 'Copy', 'Telefon raqam nusxa olindi'); });
+
+ppaste.addEventListener('click', function () {
+  function manual() { pin.focus(); flash(ppaste, 'Ctrl+V bosing', 'Paste'); }
+  if (navigator.clipboard && navigator.clipboard.readText && window.isSecureContext) {
+    navigator.clipboard.readText().then(function (t) {
+      pin.value = stripSpaces(t);
+      pin.focus();
+      flash(ppaste, 'Joylandi ✓', 'Paste');
+      if (pin.value) log("Telefon raqam qo'yildi (Paste)", pin.value);
+    }, manual);
+  } else {
+    manual();
+  }
+});
+
+document.getElementById('pclear').addEventListener('click', function () {
+  if (pin.value) log('Telefon raqam tozalandi', pin.value);
+  pin.value = ''; pin.focus();
+});
+
+// Tugma bosilganda yengil animatsiya (bitta umumiy tinglovchi)
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('button');
+  if (!b || b.classList.contains('glass')) return;
+  b.classList.remove('pop');
+  void b.offsetWidth;
+  b.classList.add('pop');
+});
+document.addEventListener('animationend', function (e) {
+  e.target.classList.remove('pop');
+});
+</script>
+
+<script type="module">
+// Liquid glass: https://liquid-glass.ybouane.com/ saytidagi kutubxonaning o'zi
+(async function () {
+  var root = document.getElementById('app');
+  try {
+    var bg = document.getElementById('bg');
+    if (bg.decode) { try { await bg.decode(); } catch (e) {} }
+    if (document.fonts && document.fonts.ready) { await document.fonts.ready; }
+    // Rasmni canvas'ga o'qib ko'ramiz: file:// da brauzer buni taqiqlaydi, shunda zaxira rejimga o'tamiz
+    var c = document.createElement('canvas'); c.width = c.height = 1;
+    var cx = c.getContext('2d'); cx.drawImage(bg, 0, 0, 1, 1); cx.getImageData(0, 0, 1, 1);
+    var mod = await import('https://cdn.jsdelivr.net/npm/@ybouane/liquidglass@1.0.3/dist/index.js');
+    await mod.LiquidGlass.init({
+      root: root,
+      glassElements: root.querySelectorAll('.glass')
+    });
+  } catch (err) {
+    console.warn('LiquidGlass ishga tushmadi, oddiy shisha rejimi yoqildi:', err);
+    root.classList.add('lg-fallback');
+  }
+})();
+</script>
+</body>
+</html>
